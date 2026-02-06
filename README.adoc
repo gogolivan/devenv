@@ -16,15 +16,8 @@ _devcontainers_, _k8s_, _terraform_, _helm_, _kyverno_, _cert-manager_, _istio_,
 
 - https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack[VS Code Remote Development Extension]
 
-NOTE: For a complete development environment configuration check link:.devcontainer/Dockerfile[Dockerfile], link:.devcontainer/post-start.sh[] and link:.devcontainer/post-create.sh[].
-
 == Getting Started
-=== Configuration
-.variables.tf
-[source, hcl]
-----
-include::variables.tf[]
-----
+Clone the repository and open it in _Dev Container_.
 
 === Port forwarding
 [source,shell]
