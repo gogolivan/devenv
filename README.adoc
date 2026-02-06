@@ -26,8 +26,7 @@ kubectl port-forward svc/gateway-istio 80:80
 ----
 
 == Resources
-- https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/[Kubernetes Dashboard]
-http://localhost/kubernetes-dashboard[http://localhost/kubernetes-dashboard]
+- https://headlamp.dev/[Headlamp]
 
 - https://kyverno.io/[Kyverno]
 

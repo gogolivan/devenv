@@ -1,18 +1,9 @@
-resource "helm_release" "kyverno" {
-  name             = "kyverno"
-  repository       = "https://kyverno.github.io/kyverno/"
-  chart            = "kyverno"
-  namespace        = "kyverno"
-  create_namespace = true
-  version          = var.kyverno_helm_version
-}
-
 resource "kubernetes_manifest" "mutate_gvisor_runtime" {
   manifest = {
     apiVersion = "policies.kyverno.io/v1"
     kind       = "MutatingPolicy"
     metadata = {
-      name = "add-gvisor-runtime"
+      name = "gvisor-runtime"
     }
     spec = {
       matchConstraints = {
@@ -42,5 +33,5 @@ resource "kubernetes_manifest" "mutate_gvisor_runtime" {
     }
   }
 
-  depends_on = [helm_release.kyverno]
+  depends_on = []
 }

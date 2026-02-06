@@ -1,12 +1,11 @@
-# terraform output kubernetes_dashboard_token
-output "kubernetes_dashboard_token" {
-  description = "Kubernetes Dashboard module token output"
-  value       = nonsensitive(module.kubernetes_dashboard.kubernetes_dashboard_admin_user_token_base64)
-}
-
 output "kyverno" {
   description = "Kyverno module output"
   value       = module.kyverno
+}
+
+output "headlamp" {
+  description = "Kubernetes UI"
+  value       = module.headlamp
 }
 
 output "istio" {

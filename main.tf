@@ -14,8 +14,8 @@ module "kyverno" {
   source = "./modules/kyverno"
 }
 
-module "kubernetes_dashboard" {
-  source = "./modules/kubernetes-dashboard"
+module "headlamp" {
+  source = "./modules/headlamp"
 
   depends_on = [module.kyverno]
 }
@@ -63,7 +63,7 @@ module "grafana" {
 
   source = "./modules/grafana"
 
-  depends_on = [module.kyverno]
+  depends_on = [module.kyverno, module.istio]
 }
 
 # Istio Kubernetes Gateway API

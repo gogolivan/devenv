@@ -7,6 +7,9 @@ minikube start --container-runtime=containerd  \
 
 minikube addons enable gvisor
 
+# Enable metrics for cluster monitoring
+minikube addons enable metrics-server
+
 # Wait until Kubernetes API is ready
 echo "Waiting for Kubernetes cluster to be ready..."
 until kubectl get nodes >/dev/null 2>&1; do
