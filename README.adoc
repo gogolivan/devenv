@@ -1,0 +1,85 @@
+= Development Environment
+:toc:
+:toclevels: 2
+:source-highlighter: highlightjs
+
+This repository contains _Terraform_ modules for deploying development resources into a _Dev Container_ https://minikube.sigs.k8s.io/[Minikube] _Kubernetes_ cluster with https://minikube.sigs.k8s.io/docs/handbook/addons/gvisor/[gVisor] addon enabled and https://gateway-api.sigs.k8s.io/[Gateway API] installed.
+
+== Topics
+_devcontainers_, _k8s_, _terraform_, _helm_, _cert-manager_, _istio_, _kiali_, _argocd_, _gitea_, _prometheus_, _grafana_, _loki_, _tempo_ 
+
+== Prerequisites
+=== https://containers.dev/[Dev Containers]
+- https://www.docker.com/[Docker]
+
+- https://code.visualstudio.com/[Visual Studio Code]
+
+- https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack[VS Code Remote Development Extension]
+
+NOTE: For a complete development environment configuration check link:.devcontainer/Dockerfile[Dockerfile], link:.devcontainer/post-start.sh[] and link:.devcontainer/post-create.sh[].
+
+== Getting Started
+=== Configuration
+.variables.tf
+[source, hcl]
+----
+include::variables.tf[]
+----
+
+=== Port forwarding
+[source,shell]
+----
+kubectl port-forward svc/gateway-istio 80:80
+----
+
+== Resources
+- https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/[Kubernetes Dashboard]
+http://localhost/kubernetes-dashboard[http://localhost/kubernetes-dashboard]
+
+- https://kyverno.io/[Kyverno]
+
+- https://istio.io/[Istio]
+
+- https://kiali.io/[Kiali]
+
+http://localhost/kiali/[http://localhost/kiali/]
+
+- https://about.gitea.com/[Gitea]
+
+http://localhost/gitea[http://localhost/gitea]
+
+- https://argo-cd.readthedocs.io/en/stable/[ArgoCD]
+
+http://localhost/argocd/[http://localhost/argocd/]
+
+== Getting Started
+[source,shell]
+----
+terraform init
+----
+
+[source,shell]
+----
+terraform apply
+----
+
+== Destroy
+[source,shell]
+----
+terraform destroy
+----
+
+== Format
+[source,shell]
+----
+tf fmt -recursive .
+----
+
+== Troubleshooting
+- Use `kubectl explain` and `kubectl describe`
+- More info with `-o wide` flag
+
+== References
+- https://artifacthub.io/[Artifact Hub]
+- https://registry.terraform.io/[Terraform Registry]
+- https://gvisor.dev/[gVisor]
