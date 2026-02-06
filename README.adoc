@@ -6,7 +6,7 @@
 This repository contains _Terraform_ modules for deploying development resources into a _Dev Container_ https://minikube.sigs.k8s.io/[Minikube] _Kubernetes_ cluster with https://minikube.sigs.k8s.io/docs/handbook/addons/gvisor/[gVisor] addon enabled and https://gateway-api.sigs.k8s.io/[Gateway API] installed.
 
 == Topics
-_devcontainers_, _k8s_, _terraform_, _helm_, _cert-manager_, _istio_, _kiali_, _argocd_, _gitea_, _prometheus_, _grafana_, _loki_, _tempo_ 
+_devcontainers_, _k8s_, _terraform_, _helm_, _kyverno_, _cert-manager_, _istio_, _kiali_, _argocd_, _gitea_, _prometheus_, _grafana_, _loki_, _tempo_
 
 == Prerequisites
 === https://containers.dev/[Dev Containers]
