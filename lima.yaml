@@ -21,6 +21,7 @@ env:
   GATEWAY_API_VERSION: "v1.4.0"
   KYVERNO_VERSION: "3.7.1"
   OPENEBS_VERSION: "4.4.0"
+  DOCKER_REGISTRY_VERSION: "3.0.0"
   SKOPEO_VERSION: "v1.21.0"
 
 # Provisioning logs can be found at `/var/log/cloud-init-output.log`
@@ -257,6 +258,14 @@ provision:
       
       # Set openebs-hostpath as the default storage class
       kubectl patch storageclass openebs-hostpath -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+  
+  # Run local private Docker registry
+  - mode: user
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+
+      sudo nerdctl run -d -p 5000:5000 --restart always --name registry registry:${DOCKER_REGISTRY_VERSION}
 
   # OperatorHub Catalog pruning
   - mode: user
@@ -283,14 +292,8 @@ provision:
       sudo nerdctl --namespace k8s.io build \
         -t localhost:5000/operatorhubio/catalog:0.1.0 \
         -f configs.Dockerfile .
-      
-      # Create OperatorHub Catalog ConfigMap
-      kubectl create configmap operator-catalog \
-        --from-file=configs/index.json \
-        -n olm \
-        --dry-run=client -o yaml > operator-catalog-configmap.yaml
-      
-      kubectl apply -f operator-catalog-configmap.yaml
+
+      sudo nerdctl --namespace k8s.io push localhost:5000/operatorhubio/catalog:0.1.0
 
   # Add aliases for kubectl and opentofu
   - mode: user

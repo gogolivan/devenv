@@ -6,9 +6,9 @@ resources:
 
 patches:
   - target:
-      group: operators.coreos.com
-      version: v1alpha1
       kind: CatalogSource
       name: operatorhubio-catalog
-      namespace: olm
-    path: ./patches/catalogsource.yaml
+    patch: |-
+      - op: replace
+        path: /spec/image
+        value: localhost:5000/operatorhubio/catalog:0.1.0
