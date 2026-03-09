@@ -34,56 +34,40 @@ provider "helm" {
   }
 }
 
-module "olm" {
-  source = "./modules/olm"
+module "operators" {
+  source = "./modules/operators"
 }
 
-module "headlamp" {
-  source = "./modules/headlamp"
+module "management" {
+  source = "./modules/management"
 }
 
-module "istio" {
-  count = lookup(var.modules_enabled, "istio", false) ? 1 : 0
+module "networking" {
+  count = lookup(var.modules_enabled, "networking", false) ? 1 : 0
 
-  source = "./modules/istio"
+  source = "./modules/networking"
 }
 
-module "gitea" {
-  depends_on = [module.istio]
+module "gitops" {
+  depends_on = [module.networking]
 
-  count = lookup(var.modules_enabled, "gitea", false) ? 1 : 0
+  count = lookup(var.modules_enabled, "gitops", false) ? 1 : 0
 
-  source = "./modules/gitea"
+  source = "./modules/gitops"
 }
 
-module "argocd" {
-  depends_on = [module.istio]
+module "observability" {
+  depends_on = [module.observability]
 
-  count = lookup(var.modules_enabled, "argocd", false) ? 1 : 0
+  count = lookup(var.modules_enabled, "observability", false) ? 1 : 0
 
-  source = "./modules/argocd"
+  source = "./modules/observability"
 }
 
-module "prometheus" {
-  depends_on = [module.istio]
+module "security" {
+  count = lookup(var.modules_enabled, "security", false) ? 1 : 0
 
-  count = lookup(var.modules_enabled, "prometheus", false) ? 1 : 0
-
-  source = "./modules/prometheus"
-}
-
-module "grafana" {
-  depends_on = [module.istio, module.prometheus]
-
-  count = lookup(var.modules_enabled, "grafana", false) ? 1 : 0
-
-  source = "./modules/grafana"
-}
-
-module "openbao" {
-  count = lookup(var.modules_enabled, "openbao", false) ? 1 : 0
-
-  source = "./modules/openbao"
+  source = "./modules/security"
 }
 
 # Istio Kubernetes Gateway API

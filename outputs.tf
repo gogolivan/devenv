@@ -1,30 +1,30 @@
-output "headlamp" {
-  description = "Kubernetes UI"
-  value       = module.headlamp
+output "operators" {
+  description = "Operators module output"
+  value       = module.operators
+}
+
+output "management" {
+  description = "Management module output"
+  value       = module.management
   sensitive = true
 }
 
-output "istio" {
-  description = "Istio module output"
-  value       = module.istio
+output "networking" {
+  description = "Networking module output"
+  value = module.networking
 }
 
-output "gitea" {
-  description = "Gitea module output"
-  value = module.gitea
+output "gitops" {
+  description = "GitOps module output"
+  value       = module.gitops
 }
 
-output "argocd" {
-  description = "ArgoCD module output"
-  value       = module.argocd
+output "observability" {
+  description = "Observability module output"
+  value = module.observability
 }
 
-output "prometheus" {
-  description = "Prometheus module output"
-  value = module.prometheus
-}
-
-output "grafana" {
-  description = "Grafana module output"
-  value = module.grafana
+output "security" {
+  description = "Security module output"
+  value = module.observability
 }
