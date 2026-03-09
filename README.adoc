@@ -170,6 +170,12 @@ kubectl port-forward svc/gateway-istio 80:80
 
 == Resources
 === https://headlamp.dev/[Headlamp]
+==== Install
+[source,shell]
+----
+tofu -target=module.headlamp
+----
+
 ==== Credentials
 [source,shell]
 ----
@@ -183,19 +189,55 @@ https://headlamp.dev/docs/latest/installation/in-cluster/oidc/[OIDC Provider] in
 ====
 
 === https://istio.io/[Istio]
+==== Install
+[source,shell]
+----
+tofu -target=module.istio
+----
 
-=== https://kiali.io/[Kiali]
+==== Kiali
+https://kiali.io/[Kiali]
 
 http://localhost/kiali/[http://localhost/kiali/]
 
 === https://about.gitea.com/[Gitea]
+==== Install
+[source,shell]
+----
+tofu -target=module.gitea
+----
 
 http://localhost/gitea[http://localhost/gitea]
 
 === https://argo-cd.readthedocs.io/en/stable/[ArgoCD]
+==== Install
+[source,shell]
+----
+tofu -target=module.argocd
+----
+
 http://localhost/argocd/[http://localhost/argocd/]
 
+=== https://prometheus.io/[Prometheus]
+==== Install
+[source,shell]
+----
+tofu -target=module.prometheus
+----
+
+=== https://grafana.com/[Grafana]
+==== Install
+[source,shell]
+----
+tofu -target=module.grafana
+----
+
 === https://openbao.org/[OpenBao]
+==== Install
+[source,shell]
+----
+tofu -target=module.openbao
+----
 
 == Troubleshooting
 - Use `kubectl explain` and `kubectl describe`
