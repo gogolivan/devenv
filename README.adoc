@@ -170,7 +170,6 @@ kubectl port-forward svc/gateway-istio 80:80
 
 == Modules
 === Management
-==== Install
 [source,shell]
 ----
 tofu -target=module.management
@@ -190,20 +189,19 @@ The token generated grants admin access to the cluster. It is recommended to use
 https://headlamp.dev/docs/latest/installation/in-cluster/oidc/[OIDC Provider] instead.
 ====
 
-=== https://istio.io/[Istio]
-==== Install
+=== Networking
 [source,shell]
 ----
-tofu -target=module.istio
+tofu -target=module.networking
 ----
 
-==== Kiali
-https://kiali.io/[Kiali]
+==== https://istio.io/[Istio]
+
+==== https://kiali.io/[Kiali]
 
 http://localhost/kiali/[http://localhost/kiali/]
 
 === GitOps
-==== Install
 [source,shell]
 ----
 tofu -target=module.gitops
