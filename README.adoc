@@ -168,7 +168,7 @@ tofu fmt -recursive .
 kubectl port-forward svc/gateway-istio 80:80
 ----
 
-== Resources
+== Modules
 === https://headlamp.dev/[Headlamp]
 ==== Install
 [source,shell]
@@ -200,21 +200,18 @@ https://kiali.io/[Kiali]
 
 http://localhost/kiali/[http://localhost/kiali/]
 
-=== https://about.gitea.com/[Gitea]
+=== GitOps
 ==== Install
 [source,shell]
 ----
-tofu -target=module.gitea
+tofu -target=module.gitops
 ----
+
+==== https://about.gitea.com/[Gitea]
 
 http://localhost/gitea[http://localhost/gitea]
 
-=== https://argo-cd.readthedocs.io/en/stable/[ArgoCD]
-==== Install
-[source,shell]
-----
-tofu -target=module.argocd
-----
+==== https://argo-cd.readthedocs.io/en/stable/[ArgoCD]
 
 http://localhost/argocd/[http://localhost/argocd/]
 
