@@ -1,0 +1,219 @@
+= Development Environment
+:toc:
+:toclevels: 2
+:source-highlighter: highlightjs
+
+This repository contains _OpenTofu_ footnote:[https://opentofu.org/]] modules for deploying development resources into a _Lima VM_ footnote:[https://lima-vm.io] _Kubeadm_ footnote:[https://kubernetes.io/docs/reference/setup-tools/kubeadm/] instance with _Gateway API_ footnote:[https://gateway-api.sigs.k8s.io/] CRDs. _Kyverno_ footnote:[https://kyverno.io/] is installed and mutation policy configured to use _gVisor_ footnote:[https://gvisor.dev/]runtime. The cluster is configured with _OpenEBS Local PV Hostpath_ footnote:[https://openebs.io/] storage class.
+
+== Topics
+_lima_, _k8s_, _opentofu_, _helm_, _kyverno_, _istio_, _kiali_, _argocd_, _gitea_, _prometheus_, _grafana_, _loki_, _tempo_, _openbao_
+
+== Architecture
+ifdef::env-github[]
+:MERMAID: source, mermaid
+endif::[]
+ifndef::env-github[]
+:MERMAID: mermaid
+endif::[]
+[{MERMAID}]
+----
+flowchart TB
+    TF[[OpenTofu]] -- IaC --> K8sCluster
+    
+    subgraph LimaVM ["Lima VM"]
+        subgraph K8sCluster ["K8s (Runtime: gVisor)"]
+            subgraph KyvernoNS ["kyverno"]
+                Kyverno
+            end
+
+            subgraph OpenBaoNS ["openbao"]
+                OpenBao
+            end
+            
+            subgraph OpenEBSNS ["openebs"]
+                OpenEBS[(OpenEBS Local PV Hostpath)]
+            end
+
+            subgraph MonitoringNS ["monitoring"]
+                Grafana
+                Tempo
+                Loki
+                Prometheus
+            end
+
+            subgraph IstioNS ["istio"]
+                Istio
+                Kiali
+            end
+
+            subgraph ArgoCDNS ["argocd"]
+                ArgoCD
+            end
+            
+            subgraph GiteaNS ["gitea"]
+                Gitea
+            end
+
+            subgraph HeadlampNS ["headlamp"]
+                Headlamp
+            end
+        end
+    end
+    
+    Loki -.-> OpenEBS
+    Prometheus -.-> OpenEBS
+----
+
+== Prerequisites
+- https://lima-vm.io/docs/installation/[Lima VM]
+
+- https://code.visualstudio.com/[Visual Studio Code]
+
+- https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack[VS Code Remote Development Extension]
+
+== Getting Started
+Start a new virtual machine with Lima VM, and connect to it with VS Code Remote Development Extension. See https://lima-vm.io/docs/examples/vscode/[Lima VM VS Code Example] for more details.
+
+=== Lima VM
+==== Setup Lima VM
+[source,shell]
+----
+limactl start --name=default lima.yaml
+----
+
+[NOTE]
+====
+Provisioning logs can be found at `/var/log/cloud-init-output.log`
+====
+
+==== Copy files to Lima VM
+No shared folder defined in _lima.yaml_. Manually sync project files to the guest VM.
+
+[source,shell]
+----
+limactl cp -r . default:~/devenv
+----
+
+==== Connect to Lima VM
+[source,shell]
+----
+limactl shell default
+----
+
+[NOTE]
+====
+Add the following line to ~/.ssh/config to enable SSH access to the Lima VM:
+`Include ~/.lima/*/ssh.config`
+
+Open in _Remote Explorer_
+[source,shell]
+----
+ssh lima@lima-default -A
+----
+====
+
+[NOTE]
+====
+Run `limactl start default` to start existing instance
+====
+
+==== Delete Lima VM
+[source,shell]
+----
+limactl delete default -f
+----
+
+=== Operator Lifecycle Manager
+==== Operator Catalog
+By default, _Operator Lifecycle Manager_ (OLM) uses the **quay.io/operatorhubio/catalog:latest** image for the _CatalogSource_.
+
+For security reasons and to reduce memory usage, the installation of _CatalogSource_ is patched to use a pruned _Docker_ catalog image.
+
+For more details and included operators, see the _Operator Catalog_ pruning configuration in link:./lima.yaml[lima.yaml] and link:./modules/olm/manifests/base/kustomization.yaml[kustomization.yaml].
+
+[source,shell]
+----
+# Download OLM CRDs and manifest and and save it as a Kustomize base resource
+curl -L https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v0.41.0/crds.yaml -o modules/olm/manifests/crds/crds.yaml
+curl -L https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v0.41.0/olm.yaml -o modules/manifests/base/olm.yaml
+----
+
+=== OpenTofu
+==== Init
+[source,shell]
+----
+tofu init
+----
+
+[source,shell]
+----
+tofu apply
+----
+
+==== Destroy
+[source,shell]
+----
+tofu destroy
+----
+
+==== Format
+[source,shell]
+----
+tofu fmt -recursive .
+----
+
+==== Port forwarding
+[source,shell]
+----
+kubectl port-forward svc/gateway-istio 80:80
+----
+
+== Resources
+=== https://headlamp.dev/[Headlamp]
+==== Credentials
+[source,shell]
+----
+tofu output -json headlamp
+----
+
+[IMPORTANT]
+====
+The token generated grants admin access to the cluster. It is recommended to use 
+https://headlamp.dev/docs/latest/installation/in-cluster/oidc/[OIDC Provider] instead.
+====
+
+=== https://istio.io/[Istio]
+
+=== https://kiali.io/[Kiali]
+
+http://localhost/kiali/[http://localhost/kiali/]
+
+=== https://about.gitea.com/[Gitea]
+
+http://localhost/gitea[http://localhost/gitea]
+
+=== https://argo-cd.readthedocs.io/en/stable/[ArgoCD]
+http://localhost/argocd/[http://localhost/argocd/]
+
+=== https://openbao.org/[OpenBao]
+
+== Troubleshooting
+- Use `kubectl explain` and `kubectl describe`
+- More info with `-o wide` flag
+- Out of memory: increase resources `limits` and `requests` if needed.
+
+[NOTE]
+====
+Monitoring the usage:
+[source,shell]
+----
+kubectl top node && kubectl top pod -A
+----
+====
+
+== References
+- https://artifacthub.io/[Artifact Hub]
+- https://operatorhub.io/[Operator Hub]
+- https://search.opentofu.org/[OpenTofu Registry]
+- https://olm.operatorframework.io/docs/getting-started/[Operator Lifecycle Manager]
+- https://github.com/containers/skopeo[Skopeo]

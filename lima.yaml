@@ -1,0 +1,349 @@
+# https://github.com/lima-vm/lima/blob/master/templates/default.yaml
+base:
+  - template:k8s # Use the Kubernetes template as the base. 
+                   # By default, containerd is used as the container runtime.
+                   # See: https://github.com/lima-vm/lima/blob/master/templates/k8s.yaml
+                   # NOTE: gVisor requires containerd.
+
+mounts: []
+
+user: 
+  name: lima
+  uid: 1000
+
+memory: "8GiB"
+
+env:
+  RUNSC_VERSION: "20260302.0"
+  HELM_VERSION: "3.19.2-1"
+  TOFU_VERSION: "1.11.5"
+  OPERATOR_REGISTRY_VERSION: "v1.64.0"
+  GATEWAY_API_VERSION: "v1.4.0"
+  KYVERNO_VERSION: "3.7.1"
+  OPENEBS_VERSION: "4.4.0"
+  SKOPEO_VERSION: "v1.21.0"
+
+# Provisioning logs can be found at `/var/log/cloud-init-output.log`
+provision:
+  # Install gVisor
+  # https://gvisor.dev/docs/user_guide/install/#install-from-an-apt-repository
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+
+      echo "Installing gVisor version: ${RUNSC_VERSION}"
+      
+      sudo apt-get update && \
+      sudo apt-get install -y \
+          apt-transport-https \
+          ca-certificates \
+          curl \
+          gnupg
+
+      curl -fsSL https://gvisor.dev/archive.key | sudo gpg --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" | sudo tee /etc/apt/sources.list.d/gvisor.list > /dev/null
+
+      sudo apt-get update && sudo apt-get install -y runsc=${RUNSC_VERSION}
+  
+  # Configure containerd to use gVisor as a runtime class
+  # https://gvisor.dev/docs/user_guide/containerd/quick_start/
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+
+      cat <<EOF >/etc/containerd/conf.d/k8s.toml
+      version = 2
+      [plugins]
+        [plugins."io.containerd.grpc.v1.cri"]
+          sandbox_image = "$(kubeadm config images list | grep pause | sort -r | head -n1)"
+          [plugins."io.containerd.grpc.v1.cri".containerd]
+            [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
+              [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+                runtime_type = "io.containerd.runc.v2"
+                [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+                  SystemdCgroup = true
+              [plugins."io.containerd.runtime.v1.linux"]
+                shim_debug = true
+              [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
+                runtime_type = "io.containerd.runsc.v1"
+        [plugins."io.containerd.cri.v1.runtime".cni]
+          bin_dirs = ["/usr/local/libexec/cni","/opt/cni/bin"]
+      EOF
+      systemctl restart containerd
+
+  # Install Helm
+  - mode: dependency
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+
+      echo "Installing Helm version: ${HELM_VERSION}"
+
+      sudo apt-get install curl gpg apt-transport-https --yes
+      curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+      echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+      sudo apt-get update
+      sudo apt-get install helm=${HELM_VERSION}
+
+  # Install OpenTofu
+  # https://github.com/opentofu/opentofu/releases
+  - mode: dependency
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+
+      echo "Installing OpenTofu version: ${TOFU_VERSION}"
+  
+      # Installing tooling
+      sudo apt-get update
+      sudo apt-get install -y apt-transport-https ca-certificates curl gnupg
+
+      # Set up the OpenTofu repository
+      sudo install -m 0755 -d /etc/apt/keyrings
+      curl -fsSL https://get.opentofu.org/opentofu.gpg | sudo tee /etc/apt/keyrings/opentofu.gpg >/dev/null
+      curl -fsSL https://packages.opentofu.org/opentofu/tofu/gpgkey | sudo gpg --no-tty --batch --dearmor -o /etc/apt/keyrings/opentofu-repo.gpg >/dev/null
+      sudo chmod a+r /etc/apt/keyrings/opentofu.gpg /etc/apt/keyrings/opentofu-repo.gpg
+
+      # Create the OpenTofu source list
+      echo \
+        "deb [signed-by=/etc/apt/keyrings/opentofu.gpg,/etc/apt/keyrings/opentofu-repo.gpg] https://packages.opentofu.org/opentofu/tofu/any/ any main
+      deb-src [signed-by=/etc/apt/keyrings/opentofu.gpg,/etc/apt/keyrings/opentofu-repo.gpg] https://packages.opentofu.org/opentofu/tofu/any/ any main" | \
+        sudo tee /etc/apt/sources.list.d/opentofu.list > /dev/null
+      sudo chmod a+r /etc/apt/sources.list.d/opentofu.list
+
+      # Installing OpenTofu
+      sudo apt-get update
+      sudo apt-get install -y tofu=${TOFU_VERSION}
+  
+  # Install Operator Package Manager
+  - mode: dependency
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+
+      echo "Installing Operator Package Manager version: ${OPERATOR_REGISTRY_VERSION}"
+
+      # Download the release binary
+      export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
+      export OS=$(uname | awk '{print tolower($0)}')
+
+      export OPERATOR_REGISTRY_DL_URL=https://github.com/operator-framework/operator-registry/releases/download/${OPERATOR_REGISTRY_VERSION}
+      curl -LO ${OPERATOR_REGISTRY_DL_URL}/${OS}-${ARCH}-opm
+      ls -la | grep ${OS}-${ARCH}-opm
+
+      # Verify the downloaded binary
+      curl -LO ${OPERATOR_REGISTRY_DL_URL}/checksums.txt
+      ls -la | grep checksums.txt
+
+      grep "${OS}-${ARCH}-opm" checksums.txt | sha256sum -c - || exit 1
+
+      # Install the release binary in your PATH
+      chmod +x ${OS}-${ARCH}-opm && sudo mv ${OS}-${ARCH}-opm /usr/local/bin/opm
+
+  # Wait for Kubernetes nodes to be ready
+  - mode: user
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+    
+      kubectl wait --for=condition=Ready nodes --all --timeout=300s
+
+  # Install gVisor RuntimeClass
+  - mode: user
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+
+      # https://gvisor.dev/docs/user_guide/containerd/quick_start/
+      cat <<EOF | kubectl apply -f -
+      apiVersion: node.k8s.io/v1
+      kind: RuntimeClass
+      metadata:
+        name: gvisor
+      handler: runsc
+      EOF
+
+  # Install Metrics Server
+  - mode: user
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+  
+      helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+      helm upgrade --install metrics-server metrics-server/metrics-server \
+        --set args={--kubelet-insecure-tls=true}
+      
+  # Install Gateway API CRDs
+  - mode: user
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+
+      echo "Installing Gateway API CRDs version: ${GATEWAY_API_VERSION}"
+
+      # Install Gateway API CRDs
+      if kubectl get crds | grep -q 'gateway'; then
+          echo "Gateway API already installed. Skipping installation."
+      else
+          kubectl apply --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/${GATEWAY_API_VERSION}/standard-install.yaml
+          echo "Gateway API installed successfully!"
+      fi
+
+      kubectl get crds | grep gateway
+  
+  # Install Kyverno and apply policy to mutate runtime class to gVisor
+  - mode: user
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+
+      # Install Kyverno
+      if helm list -n kyverno | grep -q kyverno; then
+          echo "Kyverno is already installed. Skipping installation."
+      else
+          helm repo add kyverno https://kyverno.github.io/kyverno/
+          helm repo update
+          helm install kyverno kyverno/kyverno -n kyverno --create-namespace --version ${KYVERNO_VERSION}
+
+          # Apply Kyverno policy to mutate runtime class to gVisor
+          cat <<EOF | kubectl apply -f -
+      apiVersion: policies.kyverno.io/v1
+      kind: MutatingPolicy
+      metadata:
+        name: gvisor-runtime
+      spec:
+        matchConstraints:
+          resourceRules:
+            - apiGroups: [""]
+              apiVersions: ["v1"]
+              operations: ["CREATE", "UPDATE"]
+              resources: ["pods"]
+          namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: NotIn
+                values: ["kyverno", "kube-system", "openebs"]
+        mutations:
+          - patchType: ApplyConfiguration
+            applyConfiguration:
+              expression: >
+                Object{
+                  spec: Object.spec{
+                    runtimeClassName: "gvisor"
+                  }
+                }
+      EOF
+      fi
+
+  # Install OpenEBS local provisioner
+  # https://openebs.io/docs/quickstart-guide/installation
+  - mode: user
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+
+      helm repo add openebs https://openebs.github.io/openebs
+      helm repo update
+      helm install openebs openebs/openebs --namespace openebs --create-namespace \
+        --set engines.replicated.mayastor.enabled=false \
+        --set engines.local.lvm.enabled=false \
+        --set engines.local.zfs.enabled=false \
+        --set engines.local.rawfile.enabled=false \
+        --set loki.enabled=false \
+        --set alloy.enabled=false \
+        --version ${OPENEBS_VERSION}
+      
+      # Set openebs-hostpath as the default storage class
+      kubectl patch storageclass openebs-hostpath -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
+  # OperatorHub Catalog pruning
+  - mode: user
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+
+      mkdir -p configs
+
+      # Retrieve FBC OperatorHub Catalog
+      sudo nerdctl run --rm \
+        --entrypoint /usr/bin/opm \
+        -v $(which opm):/usr/bin/opm:ro \
+        quay.io/skopeo/stable:${SKOPEO_VERSION} \
+        render quay.io/operatorhubio/catalog:latest > catalog.json
+
+      # Prune catalog
+      cat catalog.json | jq -c 'select(.package == "keycloak-operator" or .name == "keycloak-operator" or .packageName == "keycloak-operator")' > configs/index.json
+
+      # Generate pruned OperatorHub Catalog Dockerfile
+      opm generate dockerfile configs
+
+      # Create OperatorHub Catalog Docker image
+      sudo nerdctl --namespace k8s.io build \
+        -t localhost:5000/operatorhubio/catalog:0.1.0 \
+        -f configs.Dockerfile .
+      
+      # Create OperatorHub Catalog ConfigMap
+      kubectl create configmap operator-catalog \
+        --from-file=configs/index.json \
+        -n olm \
+        --dry-run=client -o yaml > operator-catalog-configmap.yaml
+      
+      kubectl apply -f operator-catalog-configmap.yaml
+
+  # Add aliases for kubectl and opentofu
+  - mode: user
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+
+      # Aliases
+      touch ~/.bashrc
+
+      ALIASES=$(cat << 'EOF'
+
+      # Kubectl aliases
+      alias k='kubectl'
+      alias kga='kubectl get all'
+      alias kgp='kubectl get pods'
+      alias kgs='kubectl get services'
+      alias kgd='kubectl get deployments'
+      alias kdp='kubectl describe pod'
+      alias kds='kubectl describe service'
+      alias kl='kubectl logs'
+
+      # Terraform / OpenTofu aliases
+      alias tf='tofu'
+      alias tfi='tofu init'
+      alias tfp='tofu plan'
+      alias tfa='tofu apply'
+      alias tfd='tofu destroy'
+      alias tfs='tofu show'
+      alias tfv='tofu validate'
+
+      EOF
+      )
+
+      # Add aliases, skipping duplicates
+      while IFS= read -r line; do
+          if [[ $line =~ ^alias[[:space:]]+ ]]; then
+              # Extract alias name
+              name=$(echo "$line" | awk -F"[ =]" '{print $2}')
+              # Check if alias already exists
+              if ! grep -qE "^alias $name=" ~/.bashrc; then
+                  echo "$line" >> ~/.bashrc
+                  echo "Added alias: $name"
+              else
+                  echo "Alias $name already exists, skipping."
+              fi
+          else
+              # Keep comments or empty lines if missing
+              if ! grep -Fxq "$line" ~/.bashrc; then
+                  echo "$line" >> ~/.bashrc
+              fi
+          fi
+      done <<< "$ALIASES"
+
+      # Reload ~/.bashrc
+      source ~/.bashrc
