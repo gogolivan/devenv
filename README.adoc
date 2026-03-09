@@ -173,7 +173,7 @@ kubectl port-forward svc/gateway-istio 80:80
 ==== Install
 [source,shell]
 ----
-tofu -target=module.headlamp
+tofu -target=module.management
 ----
 
 ==== https://headlamp.dev/[Headlamp]
@@ -228,12 +228,14 @@ tofu -target=module.observability
 
 ==== https://grafana.com/[Grafana]
 
-=== https://openbao.org/[OpenBao]
+=== Security
 ==== Install
 [source,shell]
 ----
-tofu -target=module.openbao
+tofu -target=module.security
 ----
+
+==== https://openbao.org/[OpenBao]
 
 == Troubleshooting
 - Use `kubectl explain` and `kubectl describe`
