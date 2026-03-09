@@ -169,6 +169,12 @@ kubectl port-forward svc/gateway-istio 80:80
 ----
 
 == Modules
+=== Operators
+[source,shell]
+----
+tofu -target=module.operators
+----
+
 === Management
 [source,shell]
 ----
@@ -216,7 +222,6 @@ http://localhost/gitea[http://localhost/gitea]
 http://localhost/argocd/[http://localhost/argocd/]
 
 === Observability
-==== Install
 [source,shell]
 ----
 tofu -target=module.observability
@@ -227,7 +232,6 @@ tofu -target=module.observability
 ==== https://grafana.com/[Grafana]
 
 === Security
-==== Install
 [source,shell]
 ----
 tofu -target=module.security
