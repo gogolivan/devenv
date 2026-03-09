@@ -169,14 +169,16 @@ kubectl port-forward svc/gateway-istio 80:80
 ----
 
 == Modules
-=== https://headlamp.dev/[Headlamp]
+=== Management
 ==== Install
 [source,shell]
 ----
 tofu -target=module.headlamp
 ----
 
-==== Credentials
+==== https://headlamp.dev/[Headlamp]
+
+===== Credentials
 [source,shell]
 ----
 tofu output -json headlamp
