@@ -218,19 +218,16 @@ tofu -target=module.argocd
 
 http://localhost/argocd/[http://localhost/argocd/]
 
-=== https://prometheus.io/[Prometheus]
+=== Observability
 ==== Install
 [source,shell]
 ----
-tofu -target=module.prometheus
+tofu -target=module.observability
 ----
 
-=== https://grafana.com/[Grafana]
-==== Install
-[source,shell]
-----
-tofu -target=module.grafana
-----
+==== https://prometheus.io/[Prometheus]
+
+==== https://grafana.com/[Grafana]
 
 === https://openbao.org/[OpenBao]
 ==== Install

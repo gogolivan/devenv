@@ -30,7 +30,7 @@ resource "helm_release" "loki" {
   namespace  = local.grafana_namespace
 
   values = [
-    file("${path.root}/modules/grafana/values/loki/values.yaml")
+    file("${path.module}/charts/loki/values.yaml")
   ]
 }
 
